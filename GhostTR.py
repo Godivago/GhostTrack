@@ -42,24 +42,39 @@ def IP_Track():
     ip = input(f"{Wh}\n Enter IP target : {Gr}")  # INPUT IP ADDRESS
     print()
     print(f' {Wh}============= {Gr}SHOW INFORMATION IP ADDRESS {Wh}=============')
-    req_api = requests.get(f"http://ipwho.is/{ip}")  # API IPWHOIS.IS
-    ip_data = json.loads(req_api.text)
+    try:
+        req_api = requests.get(f"http://ipwho.is/{ip}", timeout=10)
+        req_api.raise_for_status()
+        ip_data = req_api.json()
+    except requests.RequestException as e:
+        print(f"{Re}Error: {e}")
+        return
+
+    if ip_data.get("success") is False:
+        print(f"{Re}Error: {ip_data.get('message', 'Unable to locate IP')}")
+        return
+
     time.sleep(2)
     print(f"{Wh}\n IP target       :{Gr}", ip)
-    print(f"{Wh} Type IP         :{Gr}", ip_data["type"])
-    print(f"{Wh} Country         :{Gr}", ip_data["country"])
-    print(f"{Wh} Country Code    :{Gr}", ip_data["country_code"])
-    print(f"{Wh} City            :{Gr}", ip_data["city"])
-    print(f"{Wh} Continent       :{Gr}", ip_data["continent"])
-    print(f"{Wh} Continent Code  :{Gr}", ip_data["continent_code"])
-    print(f"{Wh} Region          :{Gr}", ip_data["region"])
-    print(f"{Wh} Region Code     :{Gr}", ip_data["region_code"])
-    print(f"{Wh} Latitude        :{Gr}", ip_data["latitude"])
-    print(f"{Wh} Longitude       :{Gr}", ip_data["longitude"])
-    lat = int(ip_data['latitude'])
-    lon = int(ip_data['longitude'])
-    print(f"{Wh} Maps            :{Gr}", f"https://www.google.com/maps/@{lat},{lon},8z")
-    print(f"{Wh} EU              :{Gr}", ip_data["is_eu"])
+    print(f"{Wh} Type IP         :{Gr}", ip_data.get("type", "N/A"))
+    print(f"{Wh} Country         :{Gr}", ip_data.get("country", "N/A"))
+    print(f"{Wh} Country Code    :{Gr}", ip_data.get("country_code", "N/A"))
+    print(f"{Wh} City            :{Gr}", ip_data.get("city", "N/A"))
+    print(f"{Wh} Continent       :{Gr}", ip_data.get("continent", "N/A"))
+    print(f"{Wh} Continent Code  :{Gr}", ip_data.get("continent_code", "N/A"))
+    print(f"{Wh} Region          :{Gr}", ip_data.get("region", "N/A"))
+    print(f"{Wh} Region Code     :{Gr}", ip_data.get("region_code", "N/A"))
+    print(f"{Wh} Latitude        :{Gr}", ip_data.get("latitude", "N/A"))
+    print(f"{Wh} Longitude       :{Gr}", ip_data.get("longitude", "N/A"))
+    lat = ip_data.get('latitude')
+    lon = ip_data.get('longitude')
+    try:
+        lat = float(lat)
+        lon = float(lon)
+        print(f"{Wh} Maps            :{Gr}", f"https://www.google.com/maps/@{lat},{lon},8z")
+    except (TypeError, ValueError):
+        print(f"{Wh} Maps            :{Gr} N/A")
+    print(f"{Wh} EU              :{Gr}", ip_data.get("is_eu", "N/A"))
     print(f"{Wh} Postal          :{Gr}", ip_data["postal"])
     print(f"{Wh} Calling Code    :{Gr}", ip_data["calling_code"])
     print(f"{Wh} Capital         :{Gr}", ip_data["capital"])
@@ -83,7 +98,12 @@ def phoneGW():
         f"\n {Wh}Enter phone number target {Gr}Ex [+6281xxxxxxxxx] {Wh}: {Gr}")  # INPUT NUMBER PHONE
     default_region = "ID"  # DEFAULT NEGARA INDONESIA
 
-    parsed_number = phonenumbers.parse(User_phone, default_region)  # VARIABLE PHONENUMBERS
+    try:
+        parsed_number = phonenumbers.parse(User_phone, default_region)  # VARIABLE PHONENUMBERS
+    except phonenumbers.NumberParseException as e:
+        print(f"{Re}Error: {e}")
+        return
+
     region_code = phonenumbers.region_code_for_number(parsed_number)
     jenis_provider = carrier.name_for_number(parsed_number, "en")
     location = geocoder.description_for_number(parsed_number, "id")
@@ -151,10 +171,13 @@ def TrackLu():
         ]
         for site in social_media:
             url = site['url'].format(username)
-            response = requests.get(url)
-            if response.status_code == 200:
-                results[site['name']] = url
-            else:
+            try:
+                response = requests.get(url, timeout=10)
+                if response.status_code == 200:
+                    results[site['name']] = url
+                else:
+                    results[site['name']] = (f"{Ye}Username not found {Ye}!")
+            except requests.RequestException:
                 results[site['name']] = (f"{Ye}Username not found {Ye}!")
     except Exception as e:
         print(f"{Re}Error : {e}")
@@ -168,8 +191,13 @@ def TrackLu():
 
 @is_option
 def showIP():
-    respone = requests.get('https://api.ipify.org/')
-    Show_IP = respone.text
+    try:
+        respone = requests.get('https://api.ipify.org/', timeout=10)
+        respone.raise_for_status()
+        Show_IP = respone.text
+    except requests.RequestException as e:
+        print(f"{Re}Error: {e}")
+        return
 
     print(f"\n {Wh}========== {Gr}SHOW INFORMATION YOUR IP {Wh}==========")
     print(f"\n {Wh}[{Gr} + {Wh}] Your IP Adrress : {Gr}{Show_IP}")
@@ -235,7 +263,7 @@ def execute_option(opt):
     except ValueError as e:
         print(e)
         time.sleep(2)
-        execute_option(opt)
+        main()
     except KeyboardInterrupt:
         print(f'\n{Wh}[ {Re}! {Wh}] {Re}Exit')
         time.sleep(2)
@@ -259,11 +287,11 @@ def is_in_options(num):
 def option():
     # BANNER TOOLS
     clear()
-    stderr.writelines(f"""
+    stderr.writelines(fr"""
        ________               __      ______                __  
       / ____/ /_  ____  _____/ /_    /_  __/________ ______/ /__
-     / / __/ __ \/ __ \/ ___/ __/_____/ / / ___/ __ `/ ___/ //_/
-    / /_/ / / / / /_/ (__  ) /_/_____/ / / /  / /_/ / /__/ ,<   
+     / / __/ __ \/ __ \/ ___/ __/_____/ / / / ___/ __ `/ ___/ //_/
+    / /_/ / / / /_/ (__  ) /_/_____/ / / /  / /_/ / /__/ ,<   
     \____/_/ /_/\____/____/\__/     /_/ /_/   \__,_/\___/_/|_| 
 
               {Wh}[ + ]  C O D E   B Y  H U N X  [ + ]
